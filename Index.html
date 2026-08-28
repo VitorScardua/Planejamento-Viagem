@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Escala de Viagem</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#16213E">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Viagem">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#16213E; --ink-deep:#0E1526; --paper:#F6EFDF; --paper-soft:#EFE4C9;
+    --stamp:#C1440E; --brass:#B08D57; --slate:#5B6472; --green:#4C7A5E; --white:#FFFDF7;
+    --line: rgba(22,33,62,0.16);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0; background:var(--ink); color:var(--paper); font-family:'IBM Plex Sans',sans-serif; -webkit-font-smoothing:antialiased;}
+  body{
+    background-image:
+      radial-gradient(circle at 15% 8%, rgba(176,141,87,0.10), transparent 40%),
+      radial-gradient(circle at 90% 85%, rgba(193,68,14,0.08), transparent 45%);
+    min-height:100vh; padding-bottom:64px;
+  }
+  h1,h2,h3{font-family:'Fraunces',serif; margin:0;}
+  .wrap{max-width:640px; margin:0 auto; padding:28px 18px 0;}
+
+  header{margin-bottom:22px;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--brass); margin-bottom:6px; display:flex; align-items:center; gap:8px;}
+  .eyebrow .dot{width:5px;height:5px;border-radius:50%;background:var(--stamp);display:inline-block;}
+  h1{font-size:30px; font-weight:600; color:var(--white); line-height:1.1;}
+  .sub{color:rgba(246,239,223,.6); font-size:14px; margin-top:6px; max-width:46ch;}
+
+  .view{display:none;} .view.active{display:block;}
+
+  .back-btn{display:inline-flex; align-items:center; gap:6px; background:none; border:none; color:rgba(246,239,223,.7); font-family:'IBM Plex Mono',monospace; font-size:12px; text-transform:uppercase; letter-spacing:.08em; cursor:pointer; padding:0; margin-bottom:14px;}
+  .back-btn:hover{color:var(--white);}
+
+  /* ---- add box (shared) ---- */
+  .add-box{display:flex; gap:8px; margin-bottom:10px;}
+  .add-box input[type=text]{flex:1; padding:13px 14px; border-radius:10px; border:1px solid rgba(246,239,223,.2); background:rgba(255,255,255,.04); color:var(--white); font-size:15px; font-family:'IBM Plex Sans',sans-serif;}
+  .add-box input::placeholder{color:rgba(246,239,223,.35);}
+  .add-box button{border:none; border-radius:10px; padding:0 16px; cursor:pointer; font-weight:600;}
+  .btn-add{background:var(--stamp); color:var(--white);}
+  .btn-mic{background:rgba(255,255,255,.08); color:var(--white); width:48px; display:flex; align-items:center; justify-content:center; border:1px solid rgba(246,239,223,.2);}
+  .btn-mic.listening{background:var(--stamp); animation:pulse 1.1s infinite;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(193,68,14,.55);}70%{box-shadow:0 0 0 12px rgba(193,68,14,0);}100%{box-shadow:0 0 0 0 rgba(193,68,14,0);}}
+  .voice-hint{font-size:12px; color:rgba(246,239,223,.4); margin:-2px 0 18px 2px;}
+  .empty{text-align:center; padding:40px 20px; color:rgba(246,239,223,.4); font-size:14px; border:1px dashed rgba(246,239,223,.2); border-radius:14px;}
+
+  /* ---- home: trip cards ---- */
+  .trip-card{background:var(--paper); color:var(--ink); border-radius:16px; padding:16px 44px 16px 20px; margin-bottom:14px; cursor:pointer; position:relative; box-shadow:0 10px 24px rgba(0,0,0,.22); animation:rise .35s ease;}
+  @keyframes rise{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
+  .trip-card::before{content:""; position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--brass); border-radius:16px 0 0 16px;}
+  .trip-name{font-family:'Fraunces',serif; font-weight:600; font-size:19px;}
+  .trip-meta{font-size:12.5px; color:var(--slate); margin-top:5px; font-family:'IBM Plex Mono',monospace;}
+  .trip-progress{height:6px; background:var(--paper-soft); border-radius:4px; margin-top:12px; overflow:hidden;}
+  .trip-progress-fill{height:100%; background:linear-gradient(90deg,var(--green),var(--brass));}
+  .trip-del{position:absolute; top:14px; right:14px; background:none; border:none; color:var(--slate); opacity:.5; font-size:16px; cursor:pointer;}
+  .trip-del:hover{opacity:1; color:var(--stamp);}
+
+  /* ---- trip header / budget bar ---- */
+  .trip-title-row{display:flex; align-items:baseline; justify-content:space-between; gap:10px;}
+  .budget-bar{margin-top:16px; background:var(--paper); color:var(--ink); border-radius:14px; padding:16px 18px; position:relative; overflow:hidden;}
+  .budget-bar::before{content:""; position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--stamp);}
+  .budget-row{display:flex; justify-content:space-between; align-items:baseline; gap:10px; flex-wrap:wrap;}
+  .budget-label{font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--slate); font-family:'IBM Plex Mono',monospace;}
+  .budget-value{font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:15px;}
+  .progress-track{height:8px; border-radius:5px; background:var(--paper-soft); margin-top:10px; overflow:hidden;}
+  .progress-fill{height:100%; background:linear-gradient(90deg,var(--green),var(--brass)); border-radius:5px; transition:width .5s ease;}
+  .budget-note{font-size:12.5px; color:var(--slate); margin-top:8px;}
+
+  .tabs{display:flex; gap:8px; margin:20px 0 16px;}
+  .tab-btn{flex:1; padding:10px 8px; border-radius:10px; border:1px solid rgba(246,239,223,.18); background:transparent; color:rgba(246,239,223,.55); font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.06em; text-transform:uppercase; cursor:pointer; transition:.2s;}
+  .tab-btn.active{background:var(--paper); color:var(--ink); border-color:var(--paper); font-weight:600;}
+  .panel{display:none;} .panel.active{display:block;}
+
+  /* ---- destination (city) card ---- */
+  .card{background:var(--paper); color:var(--ink); border-radius:16px; margin-bottom:16px; padding:16px 18px; position:relative; box-shadow:0 10px 24px rgba(0,0,0,.25); animation:rise .35s ease;}
+  .card-top{display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
+  .dest-name{font-family:'Fraunces',serif; font-weight:600; font-size:20px; line-height:1.15; word-break:break-word;}
+  .del-btn{background:none; border:none; color:var(--slate); cursor:pointer; font-size:18px; line-height:1; padding:2px 4px; opacity:.55;}
+  .del-btn:hover{opacity:1; color:var(--stamp);}
+
+  .section-label{display:flex; align-items:center; gap:8px; margin-top:16px; font-size:12.5px; font-weight:600; color:var(--ink);}
+  .row-icon{width:17px; height:17px; flex-shrink:0; color:var(--slate);}
+
+  .stepper{display:flex; align-items:center; gap:8px; margin-left:auto;}
+  .stepper button{width:26px; height:26px; border-radius:7px; border:1px solid var(--line); background:var(--white); color:var(--ink); font-size:15px; cursor:pointer; line-height:1;}
+  .stepper .count{font-family:'IBM Plex Mono',monospace; font-weight:600; min-width:16px; text-align:center; font-size:13px;}
+
+  .ticket-block{padding:11px 0; border-top:1px dashed var(--line);}
+  .ticket-block:first-of-type{border-top:none;}
+  .ticket-head{display:flex; align-items:center; gap:8px;}
+  .tnum{font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--slate); flex-shrink:0; width:20px;}
+  .nickname-input{flex:1; min-width:0; padding:7px 9px; border-radius:7px; border:1px solid var(--line); background:var(--white); color:var(--ink); font-size:13px; font-family:'IBM Plex Sans',sans-serif;}
+  .ticket-route{display:flex; align-items:center; gap:6px; margin-top:8px; padding-left:28px;}
+  .route-input{flex:1; min-width:0; padding:7px 8px; border-radius:7px; border:1px solid var(--line); background:var(--white); color:var(--ink); font-size:12px; font-family:'IBM Plex Mono',monospace;}
+  .route-arrow{color:var(--slate); font-size:13px; flex-shrink:0;}
+  .ticket-foot{display:flex; align-items:center; gap:8px; margin-top:8px; padding-left:28px; flex-wrap:wrap;}
+  .ticket-foot .ticket-cost-label{font-size:11.5px; color:var(--slate); flex-shrink:0;}
+  .date-input{padding:6px 8px; border-radius:8px; border:1px solid var(--line); background:var(--white); color:var(--ink); font-family:'IBM Plex Mono',monospace; font-size:12px;}
+  .toggle{width:38px; height:22px; border-radius:20px; background:var(--paper-soft); position:relative; cursor:pointer; border:1px solid var(--line); flex-shrink:0; transition:.2s;}
+  .toggle.on{background:var(--green);}
+  .toggle .knob{width:16px; height:16px; border-radius:50%; background:var(--white); position:absolute; top:2px; left:2px; transition:.2s;}
+  .toggle.on .knob{left:18px;}
+  .cost-input{width:88px; padding:6px 8px; border-radius:8px; border:1px solid var(--line); background:var(--white); font-family:'IBM Plex Mono',monospace; font-size:13px; color:var(--ink); text-align:right; margin-left:auto;}
+  .ticket-progress{font-size:11.5px; color:var(--slate); font-family:'IBM Plex Mono',monospace; margin-top:2px;}
+
+  .lodge-row{display:flex; align-items:center; gap:10px; margin-top:2px;}
+  .lodge-label{font-size:13px; font-weight:500; flex:1;}
+  .lodging-types{display:flex; gap:6px; margin-top:10px; flex-wrap:wrap;}
+  .ltype{font-size:11.5px; padding:6px 10px; border-radius:20px; border:1px solid var(--line); cursor:pointer; background:var(--white); color:var(--slate); font-family:'IBM Plex Sans',sans-serif;}
+  .ltype.active{background:var(--ink); color:var(--paper); border-color:var(--ink);}
+  .lodge-cost-row{display:flex; align-items:center; gap:10px; margin-top:10px;}
+
+  /* ---- budget panel ---- */
+  .field-card{background:var(--paper); color:var(--ink); border-radius:14px; padding:18px; margin-bottom:14px;}
+  .field-card label{font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--slate); font-family:'IBM Plex Mono',monospace; display:block; margin-bottom:6px;}
+  .field-card input{width:100%; padding:12px; border-radius:9px; border:1px solid var(--line); font-size:16px; font-family:'IBM Plex Mono',monospace; color:var(--ink);}
+  .two-col{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .summary-list{background:var(--paper); border-radius:14px; padding:6px 18px; color:var(--ink);}
+  .sum-row{display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--line); font-size:14px;}
+  .sum-row:last-child{border-bottom:none;}
+  .sum-row .v{font-family:'IBM Plex Mono',monospace; font-weight:600;}
+  .sum-row.total{font-weight:600;} .sum-row.total .v{color:var(--stamp);}
+
+  details{margin-top:22px; background:rgba(255,255,255,.04); border-radius:12px; padding:4px 16px; border:1px solid rgba(246,239,223,.12);}
+  summary{cursor:pointer; padding:12px 0; font-size:13px; font-weight:600; color:var(--paper); font-family:'IBM Plex Mono',monospace; text-transform:uppercase; letter-spacing:.05em;}
+  details p, details ol{font-size:13.5px; color:rgba(246,239,223,.75); line-height:1.6;}
+  details code{background:rgba(255,255,255,.08); padding:1px 5px; border-radius:4px; font-size:12px;}
+
+  .toast{position:fixed; bottom:22px; left:50%; transform:translateX(-50%); background:var(--stamp); color:var(--white); padding:12px 20px; border-radius:10px; font-size:14px; box-shadow:0 8px 20px rgba(0,0,0,.3); opacity:0; pointer-events:none; transition:.25s; z-index:20; max-width:88vw; text-align:center;}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(-6px);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow"><span class="dot"></span>Diário de bordo</div>
+    <h1>Escala de Viagem</h1>
+    <div class="sub" id="headerSub">Organize suas viagens por grupo — casamentos, trabalho, família — cada uma com suas cidades e passagens.</div>
+  </header>
+
+  <!-- ================= HOME: lista de viagens ================= -->
+  <div class="view active" id="view-home">
+    <div class="add-box">
+      <input type="text" id="tripInput" placeholder="Nome da viagem (ex: Casamentos)" autocomplete="off">
+      <button class="btn-add" id="tripAddBtn">Criar</button>
+    </div>
+    <div id="tripList"></div>
+  </div>
+
+  <!-- ================= TRIP DETAIL ================= -->
+  <div class="view" id="view-trip">
+    <button class="back-btn" id="backBtn">← Todas as viagens</button>
+    <div class="trip-title-row">
+      <h1 id="tripTitle" style="font-size:24px;"></h1>
+    </div>
+
+    <div class="budget-bar">
+      <div class="budget-row">
+        <span class="budget-label">Guardado / Necessário</span>
+        <span class="budget-value" id="budgetHeadline">R$ 0 / R$ 0</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      <div class="budget-note" id="budgetNote"></div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="destinos">Cidades</button>
+      <button class="tab-btn" data-tab="orcamento">Orçamento</button>
+    </div>
+
+    <div class="panel active" id="panel-destinos">
+      <div class="add-box">
+        <input type="text" id="destInput" placeholder="Ex: Lisboa, Portugal" autocomplete="off">
+        <button class="btn-mic" id="micBtn" title="Falar cidade">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z"/><path d="M19 11a7 7 0 0 1-14 0"/><path d="M12 18v3"/></svg>
+        </button>
+        <button class="btn-add" id="addBtn">Adicionar</button>
+      </div>
+      <div class="voice-hint" id="voiceHint">Toque no microfone e diga só o nome da cidade. Ajuste quantas passagens precisa em cada uma logo abaixo.</div>
+      <div id="destList"></div>
+    </div>
+
+    <div class="panel" id="panel-orcamento">
+      <div class="field-card">
+        <div class="two-col">
+          <div><label>Quanto preciso</label><input type="number" id="neededInput" placeholder="0" inputmode="decimal"></div>
+          <div><label>Quanto já guardei</label><input type="number" id="savedInput" placeholder="0" inputmode="decimal"></div>
+        </div>
+      </div>
+      <div class="summary-list">
+        <div class="sum-row"><span>Passagens compradas</span><span class="v" id="sumTicketCount">0 / 0</span></div>
+        <div class="sum-row"><span>Gasto em passagens</span><span class="v" id="sumTickets">R$ 0</span></div>
+        <div class="sum-row"><span>Gasto em hospedagem</span><span class="v" id="sumLodging">R$ 0</span></div>
+        <div class="sum-row total"><span>Total já gasto</span><span class="v" id="sumTotal">R$ 0</span></div>
+        <div class="sum-row"><span>Ainda falta guardar</span><span class="v" id="sumMissing">R$ 0</span></div>
+      </div>
+    </div>
+
+    <details>
+      <summary>Como usar com a Siri</summary>
+      <p>O microfone dita direto no navegador. Para o "Ei Siri" abrir o app sozinho, crie um Atalho:</p>
+      <ol>
+        <li>App <strong>Atalhos</strong> → Novo Atalho.</li>
+        <li>Ação <strong>Pedir Texto de Entrada</strong> — título "Qual cidade?".</li>
+        <li>Ação <strong>Abrir URLs</strong> com:<br><code>SEU_LINK/?trip=Casamentos&add=Texto de Entrada</code></li>
+        <li>Ative "Ei Siri" nos ajustes do atalho.</li>
+      </ol>
+      <p>O app cria a viagem "Casamentos" (se não existir) e adiciona a cidade sozinho.</p>
+    </details>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'escala_viagem_v2';
+const LODGING_TYPES = [
+  {id:'hotel', label:'Hotel / Pousada'},
+  {id:'amigos', label:'Casa de amigos'},
+  {id:'pais', label:'Casa dos pais'},
+];
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function fmt(n){ n = Number(n)||0; return 'R$ ' + n.toLocaleString('pt-BR', {minimumFractionDigits:0, maximumFractionDigits:0}); }
+function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+function migrateFromV1(){
+  try{
+    const raw = localStorage.getItem('escala_viagem_v1');
+    if(!raw) return null;
+    const old = JSON.parse(raw);
+    if(!old.destinations || !old.destinations.length) return null;
+    const destinations = old.destinations.map(d => ({
+      id: d.id || uid(), name: d.name, ticketsNeeded: 1,
+      tickets: [{id: uid(), bought: !!d.ticketBought, cost: d.ticketCost || 0, nickname:'', origin:'', destination: d.name, date:''}],
+      lodging: d.lodging || {type:null, reserved:false, cost:0}
+    }));
+    return { trips: [{ id: uid(), name: 'Minha viagem', budget: old.budget || {needed:0, saved:0}, destinations }], activeTripId: null };
+  }catch(e){ return null; }
+}
+function loadData(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const data = JSON.parse(raw);
+      (data.trips||[]).forEach(trip=>{
+        (trip.destinations||[]).forEach(d=>{
+          (d.tickets||[]).forEach(t=>{
+            if(t.nickname===undefined) t.nickname='';
+            if(t.origin===undefined) t.origin='';
+            if(t.destination===undefined) t.destination=d.name;
+            if(t.date===undefined) t.date='';
+          });
+        });
+      });
+      return data;
+    }
+  }catch(e){}
+  return migrateFromV1() || {trips:[], activeTripId:null};
+}
+function saveData(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+let state = loadData();
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+function planeIcon(s){ s = s||18; return `<svg class="row-icon" viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>`; }
+function homeIcon(s){ s = s||18; return `<svg class="row-icon" viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/></svg>`; }
+
+/* ---------------- navigation ---------------- */
+function openTrip(id){
+  state.activeTripId = id; saveData();
+  document.getElementById('view-home').classList.remove('active');
+  document.getElementById('view-trip').classList.add('active');
+  renderTripView();
+}
+function goHome(){
+  state.activeTripId = null; saveData();
+  document.getElementById('view-trip').classList.remove('active');
+  document.getElementById('view-home').classList.add('active');
+  renderHome();
+}
+document.getElementById('backBtn').addEventListener('click', goHome);
+
+/* ---------------- HOME ---------------- */
+function tripStats(trip){
+  let ticketsTotal=0, ticketsBought=0, lodgeTotal=0, lodgeReserved=0;
+  trip.destinations.forEach(d=>{
+    ticketsTotal += d.tickets.length;
+    ticketsBought += d.tickets.filter(t=>t.bought).length;
+    lodgeTotal += 1; if((d.lodging||{}).reserved) lodgeReserved++;
+  });
+  const needed = Number(trip.budget.needed)||0, saved = Number(trip.budget.saved)||0;
+  const pct = needed>0 ? Math.min((saved/needed)*100,100) : 0;
+  return {ticketsTotal, ticketsBought, lodgeTotal, lodgeReserved, pct, cities: trip.destinations.length};
+}
+
+function renderHome(){
+  const list = document.getElementById('tripList');
+  if(state.trips.length===0){
+    list.innerHTML = '<div class="empty">Nenhuma viagem ainda. Crie um grupo, tipo "Casamentos", e adicione as cidades dentro dele.</div>';
+    return;
+  }
+  list.innerHTML = state.trips.map(trip=>{
+    const s = tripStats(trip);
+    return `<div class="trip-card" data-action="openTrip" data-id="${trip.id}">
+      <button class="trip-del" data-action="deleteTrip" data-id="${trip.id}">✕</button>
+      <div class="trip-name">${escapeHtml(trip.name)}</div>
+      <div class="trip-meta">${s.cities} cidade${s.cities!==1?'s':''} · ${s.ticketsBought}/${s.ticketsTotal} passagens · ${s.lodgeReserved}/${s.lodgeTotal} hospedagens reservadas</div>
+      <div class="trip-progress"><div class="trip-progress-fill" style="width:${s.pct}%"></div></div>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('tripList').addEventListener('click', e=>{
+  const el = e.target.closest('[data-action]');
+  if(!el) return;
+  if(el.dataset.action==='deleteTrip'){
+    e.stopPropagation();
+    state.trips = state.trips.filter(t=>t.id!==el.dataset.id);
+    saveData(); renderHome(); return;
+  }
+  if(el.dataset.action==='openTrip'){ openTrip(el.dataset.id); }
+});
+
+function addTrip(name){
+  name = name.trim(); if(!name) return null;
+  const trip = {id:uid(), name, budget:{needed:0, saved:0}, destinations:[]};
+  state.trips.push(trip); saveData(); renderHome();
+  return trip;
+}
+document.getElementById('tripAddBtn').addEventListener('click', ()=>{
+  const input = document.getElementById('tripInput');
+  if(addTrip(input.value)) input.value='';
+});
+document.getElementById('tripInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ if(addTrip(e.target.value)) e.target.value=''; }
+});
+
+/* ---------------- TRIP DETAIL ---------------- */
+function activeTrip(){ return state.trips.find(t=>t.id===state.activeTripId); }
+function findDest(trip, id){ return trip.destinations.find(d=>d.id===id); }
+
+function renderTripView(){
+  const trip = activeTrip();
+  if(!trip){ goHome(); return; }
+  document.getElementById('tripTitle').textContent = trip.name;
+  renderDestinations();
+  renderBudget();
+}
+
+function renderDestinations(){
+  const trip = activeTrip();
+  const list = document.getElementById('destList');
+  if(trip.destinations.length===0){
+    list.innerHTML = '<div class="empty">Nenhuma cidade ainda. Diga ou digite o primeiro lugar que você precisa ir.</div>';
+    return;
+  }
+  list.innerHTML = trip.destinations.map(d=>cardHtml(d)).join('');
+}
+
+function cardHtml(d){
+  const lodging = d.lodging || {type:null, reserved:false, cost:0};
+  const typesHtml = LODGING_TYPES.map(t=>
+    `<div class="ltype ${lodging.type===t.id?'active':''}" data-action="setType" data-id="${d.id}" data-type="${t.id}">${t.label}</div>`
+  ).join('');
+  const boughtCount = d.tickets.filter(t=>t.bought).length;
+  const ticketsHtml = d.tickets.map((t,i)=>`
+    <div class="ticket-block">
+      <div class="ticket-head">
+        <div class="tnum">${i+1}.</div>
+        <input class="nickname-input" type="text" placeholder="Apelido (ex: Ida - João)" value="${escapeHtml(t.nickname||'')}" data-action="ticketNickname" data-id="${d.id}" data-tid="${t.id}">
+        <div class="toggle ${t.bought?'on':''}" data-action="toggleTicket" data-id="${d.id}" data-tid="${t.id}"><div class="knob"></div></div>
+      </div>
+      <div class="ticket-route">
+        <input class="route-input" type="text" placeholder="Origem" value="${escapeHtml(t.origin||'')}" data-action="ticketOrigin" data-id="${d.id}" data-tid="${t.id}">
+        <span class="route-arrow">→</span>
+        <input class="route-input" type="text" placeholder="Destino" value="${escapeHtml(t.destination||'')}" data-action="ticketDestination" data-id="${d.id}" data-tid="${t.id}">
+      </div>
+      <div class="ticket-foot">
+        <span class="ticket-cost-label">Data</span>
+        <input class="date-input" type="date" value="${t.date||''}" data-action="ticketDate" data-id="${d.id}" data-tid="${t.id}">
+        <span class="ticket-cost-label" style="margin-left:auto;">Valor</span>
+        <input class="cost-input" type="number" inputmode="decimal" placeholder="0" value="${t.cost||''}" data-action="ticketCost" data-id="${d.id}" data-tid="${t.id}" style="margin-left:0;">
+      </div>
+    </div>`).join('');
+  return `
+  <div class="card">
+    <div class="card-top">
+      <div class="dest-name">${escapeHtml(d.name)}</div>
+      <button class="del-btn" data-action="deleteDest" data-id="${d.id}">✕</button>
+    </div>
+
+    <div class="section-label">${planeIcon(17)}Passagens necessárias
+      <div class="stepper">
+        <button data-action="decTickets" data-id="${d.id}">−</button>
+        <div class="count">${d.tickets.length}</div>
+        <button data-action="incTickets" data-id="${d.id}">+</button>
+      </div>
+    </div>
+    <div class="ticket-progress">${boughtCount} de ${d.tickets.length} compradas</div>
+    ${ticketsHtml}
+
+    <div class="section-label" style="margin-top:18px;">${homeIcon(17)}Hospedagem</div>
+    <div class="lodge-row">
+      <div class="lodge-label">Reservada</div>
+      <div class="toggle ${lodging.reserved?'on':''}" data-action="toggleLodging" data-id="${d.id}"><div class="knob"></div></div>
+    </div>
+    <div class="lodging-types">${typesHtml}</div>
+    <div class="lodge-cost-row">
+      <div class="lodge-label" style="color:var(--slate); font-size:12px;">Valor da hospedagem</div>
+      <input class="cost-input" type="number" inputmode="decimal" placeholder="0" value="${lodging.cost||''}" data-action="lodgingCost" data-id="${d.id}">
+    </div>
+  </div>`;
+}
+
+function renderBudget(){
+  const trip = activeTrip();
+  document.getElementById('neededInput').value = trip.budget.needed || '';
+  document.getElementById('savedInput').value = trip.budget.saved || '';
+
+  let ticketsTotal=0, ticketsBought=0, ticketCost=0, lodgingCost=0;
+  trip.destinations.forEach(d=>{
+    ticketsTotal += d.tickets.length;
+    d.tickets.forEach(t=>{ if(t.bought) ticketsBought++; ticketCost += Number(t.cost)||0; });
+    lodgingCost += Number((d.lodging||{}).cost)||0;
+  });
+  const spentTotal = ticketCost + lodgingCost;
+  const needed = Number(trip.budget.needed)||0, saved = Number(trip.budget.saved)||0;
+  const missing = Math.max(needed-saved,0);
+
+  document.getElementById('sumTicketCount').textContent = `${ticketsBought} / ${ticketsTotal}`;
+  document.getElementById('sumTickets').textContent = fmt(ticketCost);
+  document.getElementById('sumLodging').textContent = fmt(lodgingCost);
+  document.getElementById('sumTotal').textContent = fmt(spentTotal);
+  document.getElementById('sumMissing').textContent = (missing===0 && needed>0) ? 'Meta atingida' : fmt(missing);
+
+  document.getElementById('budgetHeadline').textContent = `${fmt(saved)} / ${fmt(needed)}`;
+  const pct = needed>0 ? Math.min((saved/needed)*100,100) : 0;
+  document.getElementById('progressFill').style.width = pct+'%';
+  document.getElementById('budgetNote').textContent = needed===0
+    ? 'Defina quanto essa viagem precisa juntar.'
+    : (saved>=needed ? 'Você já guardou o suficiente 🎉' : `Faltam ${fmt(missing)} para a meta.`);
+}
+
+function addDestination(name){
+  const trip = activeTrip();
+  name = name.trim(); if(!name) return;
+  trip.destinations.push({
+    id: uid(), name, ticketsNeeded:1,
+    tickets:[{id:uid(), bought:false, cost:0, nickname:'', origin:'', destination:name, date:''}],
+    lodging:{type:null, reserved:false, cost:0}
+  });
+  saveData(); renderDestinations(); renderBudget();
+  showToast(`"${name}" adicionada`);
+}
+document.getElementById('addBtn').addEventListener('click', ()=>{
+  const input = document.getElementById('destInput');
+  addDestination(input.value); input.value='';
+});
+document.getElementById('destInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ addDestination(e.target.value); e.target.value=''; }
+});
+
+const DEST_CLICK_ACTIONS = ['deleteDest','toggleTicket','incTickets','decTickets','toggleLodging','setType'];
+document.getElementById('destList').addEventListener('click', e=>{
+  const el = e.target.closest('[data-action]');
+  if(!el) return;
+  if(!DEST_CLICK_ACTIONS.includes(el.dataset.action)) return;
+  const trip = activeTrip();
+  const d = findDest(trip, el.dataset.id);
+  if(!d) return;
+  switch(el.dataset.action){
+    case 'deleteDest':
+      trip.destinations = trip.destinations.filter(x=>x.id!==d.id);
+      saveData(); renderDestinations(); renderBudget(); return;
+    case 'toggleTicket': {
+      const t = d.tickets.find(x=>x.id===el.dataset.tid);
+      if(t) t.bought = !t.bought;
+      break;
+    }
+    case 'incTickets':
+      d.tickets.push({id:uid(), bought:false, cost:0, nickname:'', origin:'', destination:d.name, date:''});
+      break;
+    case 'decTickets':
+      if(d.tickets.length>1) d.tickets.pop();
+      break;
+    case 'toggleLodging':
+      d.lodging.reserved = !d.lodging.reserved; break;
+    case 'setType':
+      d.lodging.type = d.lodging.type===el.dataset.type ? null : el.dataset.type; break;
+  }
+  saveData(); renderDestinations(); renderBudget();
+});
+document.getElementById('destList').addEventListener('input', e=>{
+  const el = e.target.closest('[data-action]');
+  if(!el) return;
+  const trip = activeTrip();
+  const d = findDest(trip, el.dataset.id);
+  if(!d) return;
+  if(el.dataset.action==='ticketCost'){
+    const t = d.tickets.find(x=>x.id===el.dataset.tid);
+    if(t) t.cost = el.value;
+  }
+  if(el.dataset.action==='ticketNickname'){
+    const t = d.tickets.find(x=>x.id===el.dataset.tid);
+    if(t) t.nickname = el.value;
+  }
+  if(el.dataset.action==='ticketOrigin'){
+    const t = d.tickets.find(x=>x.id===el.dataset.tid);
+    if(t) t.origin = el.value;
+  }
+  if(el.dataset.action==='ticketDestination'){
+    const t = d.tickets.find(x=>x.id===el.dataset.tid);
+    if(t) t.destination = el.value;
+  }
+  if(el.dataset.action==='ticketDate'){
+    const t = d.tickets.find(x=>x.id===el.dataset.tid);
+    if(t) t.date = el.value;
+  }
+  if(el.dataset.action==='lodgingCost') d.lodging.cost = el.value;
+  saveData(); renderBudget();
+});
+
+document.getElementById('neededInput').addEventListener('input', e=>{ activeTrip().budget.needed = e.target.value; saveData(); renderBudget(); });
+document.getElementById('savedInput').addEventListener('input', e=>{ activeTrip().budget.saved = e.target.value; saveData(); renderBudget(); });
+
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+/* ---------------- voice input ---------------- */
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const micBtn = document.getElementById('micBtn');
+if(SpeechRecognition){
+  const rec = new SpeechRecognition();
+  rec.lang = 'pt-BR'; rec.interimResults = false; rec.maxAlternatives = 1;
+  let listening = false;
+  micBtn.addEventListener('click', ()=>{
+    if(listening) return;
+    listening = true; micBtn.classList.add('listening');
+    document.getElementById('voiceHint').textContent = 'Ouvindo...';
+    try{ rec.start(); }catch(e){ listening=false; micBtn.classList.remove('listening'); }
+  });
+  rec.addEventListener('result', e=>{
+    let text = e.results[0][0].transcript.trim();
+    text = text.replace(/^(quero ir para|adicionar cidade|adicionar destino|adicionar|ir para|preciso ir para|vou para)\s+/i, '');
+    text = text.charAt(0).toUpperCase() + text.slice(1);
+    addDestination(text);
+  });
+  rec.addEventListener('end', ()=>{
+    listening = false; micBtn.classList.remove('listening');
+    document.getElementById('voiceHint').textContent = 'Toque no microfone e diga só o nome da cidade. Ajuste quantas passagens precisa em cada uma logo abaixo.';
+  });
+  rec.addEventListener('error', ()=>{
+    listening = false; micBtn.classList.remove('listening');
+    document.getElementById('voiceHint').textContent = 'Não entendi, tente de novo.';
+  });
+} else {
+  micBtn.style.display = 'none';
+}
+
+/* ---------------- Siri Shortcut URL hook: ?trip=Nome&add=Cidade ---------------- */
+(function handleSiriParam(){
+  const params = new URLSearchParams(window.location.search);
+  const tripName = params.get('trip');
+  const add = params.get('add');
+  if(tripName){
+    let trip = state.trips.find(t=>t.name.toLowerCase()===tripName.toLowerCase());
+    if(!trip){ trip = {id:uid(), name:tripName, budget:{needed:0,saved:0}, destinations:[]}; state.trips.push(trip); }
+    state.activeTripId = trip.id; saveData();
+    if(add){
+      trip.destinations.push({id:uid(), name:add, ticketsNeeded:1, tickets:[{id:uid(),bought:false,cost:0,nickname:'',origin:'',destination:add,date:''}], lodging:{type:null,reserved:false,cost:0}});
+      saveData();
+    }
+    const url = new URL(window.location);
+    url.searchParams.delete('add'); url.searchParams.delete('trip');
+    window.history.replaceState({}, '', url);
+  }
+})();
+
+/* ---------------- init ---------------- */
+if(state.activeTripId && activeTrip()){
+  document.getElementById('view-home').classList.remove('active');
+  document.getElementById('view-trip').classList.add('active');
+  renderTripView();
+} else {
+  renderHome();
+}
+
+/* ---------------- offline (PWA service worker) ---------------- */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
